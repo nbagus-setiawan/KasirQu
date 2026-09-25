@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pesan Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="eyebrow">Pesan langsung dari meja Anda</div>
+    <h1>Menu Hari Ini</h1>
+    <div class="table-indicator" id="tableIndicator">Silakan pilih nomor meja di bawah</div>
+  </div>
+
+  <div class="container">
+    <div class="category-tabs" id="categoryTabs"></div>
+
+    <div id="menuList"></div>
+
+    <div class="section-title">Nomor Meja / Kursi</div>
+    <div class="table-grid" id="tableGrid"></div>
+
+    <div class="section-title">Catatan untuk Dapur</div>
+    <textarea class="note-input" id="customerNote" rows="2" placeholder="Contoh: pedas sedang, tanpa bawang, dll. (opsional)"></textarea>
+  </div>
+
+  <div class="cart-bar">
+    <span id="cartSummary">Keranjang kosong</span>
+    <button id="sendOrderBtn" disabled>Kirim Pesanan</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/customer.js"></script>
+</body>
+</html>

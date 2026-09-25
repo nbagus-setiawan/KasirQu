@@ -1,0 +1,4 @@
+node_modules/
+.env
+public/uploads/menu/*
+!public/uploads/menu/.gitkeep

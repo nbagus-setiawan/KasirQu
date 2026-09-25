@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dashboard Kasir / Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ==== LOGIN ==== -->
+  <div class="login-wrap" id="loginScreen">
+    <div class="login-card">
+      <div class="mark">🍽️</div>
+      <h1>Masuk ke Dashboard</h1>
+      <p class="sub">Khusus kasir &amp; admin. Pelanggan tidak perlu login.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" autocomplete="current-password" required />
+        </div>
+        <button class="btn-primary" type="submit">Masuk</button>
+        <div class="error-msg" id="loginError"></div>
+      </form>
+      <div class="hint-row">Akun demo — admin: admin/admin123 · kasir: kasir/kasir123. Ganti setelah setup.</div>
+    </div>
+  </div>
+
+  <!-- ==== DASHBOARD ==== -->
+  <div id="dashboard" style="display:none;">
+    <div class="app-topbar">
+      <div class="who">
+        <span class="name" id="userFullName">-</span>
+        <span class="role" id="userRole">-</span>
+      </div>
+      <button class="logout-btn" id="logoutBtn">Keluar</button>
+    </div>
+
+    <div class="tab-scroller" id="navTabs">
+      <div class="nav-tab active" data-tab="orders">Pesanan Masuk</div>
+      <div class="nav-tab" data-tab="seats">Status Meja</div>
+      <div class="nav-tab" data-tab="reports">Laporan Penjualan</div>
+      <div class="nav-tab" data-tab="history">Riwayat</div>
+      <div class="nav-tab" data-tab="menu">Kelola Menu</div>
+      <div class="nav-tab" data-tab="tables">Kelola Meja</div>
+      <div class="nav-tab admin-only" data-tab="users" style="display:none;">Kelola User</div>
+      <div class="nav-tab admin-only" data-tab="settings" style="display:none;">Pengaturan</div>
+    </div>
+
+    <div class="dash-content">
+      <div id="panel-orders" class="tab-panel"></div>
+      <div id="panel-seats" class="tab-panel" style="display:none;"></div>
+      <div id="panel-reports" class="tab-panel" style="display:none;"></div>
+      <div id="panel-history" class="tab-panel" style="display:none;"></div>
+      <div id="panel-menu" class="tab-panel" style="display:none;"></div>
+      <div id="panel-tables" class="tab-panel" style="display:none;"></div>
+      <div id="panel-users" class="tab-panel" style="display:none;"></div>
+      <div id="panel-settings" class="tab-panel" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div id="modalRoot"></div>
+  <div class="toast" id="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/cashier.js"></script>
+</body>
+</html>

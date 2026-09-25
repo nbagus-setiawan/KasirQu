@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cetak Struk</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Courier New", Courier, monospace;
+    color: #000;
+    background: #ccc;
+  }
+  #receipt {
+    width: 80mm;
+    max-width: 320px;
+    margin: 16px auto;
+    background: #fff;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .center { text-align: center; }
+  .bold { font-weight: 700; }
+  .big { font-size: 15px; }
+  hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+  .row { display: flex; justify-content: space-between; gap: 6px; }
+  .row .name { flex: 1; }
+  .item-line { margin-bottom: 2px; }
+  .item-sub { padding-left: 8px; color: #333; font-size: 11.5px; }
+  .no-print { text-align: center; margin: 14px auto; max-width: 320px; }
+  .no-print button {
+    background: #14110f; color: #fff; border: none; padding: 10px 22px;
+    border-radius: 8px; font-size: 14px; cursor: pointer; font-family: sans-serif;
+  }
+  .error { text-align: center; padding: 40px 20px; font-family: sans-serif; color: #900; }
+
+  @media print {
+    body { background: #fff; }
+    #receipt { margin: 0; width: 80mm; max-width: none; box-shadow: none; }
+    .no-print { display: none; }
+    @page { size: 80mm auto; margin: 0; }
+  }
+</style>
+</head>
+<body>
+  <div id="receipt">Memuat struk...</div>
+  <div class="no-print" id="printControls" style="display:none;">
+    <button onclick="window.print()">🖨️ Cetak Struk</button>
+  </div>
+
+  <script>
+    function formatRupiah(n) {
+      return 'Rp' + Math.round(n).toLocaleString('id-ID');
+    }
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str == null ? '' : String(str);
+      return div.innerHTML;
+    }
+
+    const STATUS_LABEL = {
+      pending: 'Baru Masuk', confirmed: 'Dikonfirmasi', paid: 'Sudah Dibayar',
+      completed: 'Selesai', cancelled: 'Dibatalkan',
+    };
+
+    (async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('order');
+      const receiptEl = document.getElementById('receipt');
+
+      if (!orderId) {
+        receiptEl.innerHTML = '<div class="error">Kode pesanan tidak ditemukan di URL.</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/orders/${orderId}/receipt`);
+        if (res.status === 401) {
+          receiptEl.innerHTML = '<div class="error">Sesi login berakhir. Silakan login kembali di dashboard lalu coba cetak ulang.</div>';
+          return;
+        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Gagal memuat struk.');
+
+        renderReceipt(data.order, data.settings);
+        document.getElementById('printControls').style.display = 'block';
+
+        // Auto-buka dialog cetak begitu halaman siap (bisa dibatalkan pengguna)
+        setTimeout(() => window.print(), 400);
+      } catch (err) {
+        receiptEl.innerHTML = `<div class="error">${escapeHtml(err.message)}</div>`;
+      }
+    })();
+
+    function renderReceipt(order, settings) {
+      const itemsHtml = order.items.map((it) => `
+        <div class="item-line">${it.qty}x ${escapeHtml(it.name)}</div>
+        <div class="row item-sub"><span>${formatRupiah(it.price)} x ${it.qty}</span><span>${formatRupiah(it.price * it.qty)}</span></div>
+      `).join('');
+
+      document.getElementById('receipt').innerHTML = `
+        <div class="center bold big">${escapeHtml(settings.restaurant_name || 'Restoran')}</div>
+        ${settings.restaurant_address ? `<div class="center">${escapeHtml(settings.restaurant_address)}</div>` : ''}
+        ${settings.restaurant_phone ? `<div class="center">${escapeHtml(settings.restaurant_phone)}</div>` : ''}
+        <hr />
+        <div class="row"><span>No. Pesanan</span><span class="bold">#${escapeHtml(order.id)}</span></div>
+        <div class="row"><span>Meja</span><span>${order.tableNumber}</span></div>
+        <div class="row"><span>Waktu</span><span>${new Date(order.createdAt).toLocaleString('id-ID')}</span></div>
+        <div class="row"><span>Status</span><span>${STATUS_LABEL[order.status] || order.status}</span></div>
+        <hr />
+        ${itemsHtml}
+        <hr />
+        <div class="row bold big"><span>TOTAL</span><span>${formatRupiah(order.total)}</span></div>
+        ${order.customerNote ? `<hr /><div>Catatan: ${escapeHtml(order.customerNote)}</div>` : ''}
+        <hr />
+        <div class="center">${escapeHtml(settings.receipt_footer || 'Terima kasih!')}</div>
+      `;
+    }
+  </script>
+</body>
+</html>
