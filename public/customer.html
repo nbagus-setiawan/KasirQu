@@ -10,27 +10,71 @@
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-  <div class="topbar">
-    <div class="eyebrow">Pesan langsung dari meja Anda</div>
-    <h1>Menu Hari Ini</h1>
-    <div class="table-indicator" id="tableIndicator">Silakan pilih nomor meja di bawah</div>
+
+  <!-- ================= STEP 1: PILIH MEJA (hanya muncul jika belum dari QR / belum pilih) ================= -->
+  <div class="table-picker-screen" id="tablePickerScreen">
+    <div class="table-picker-inner">
+      <div class="tp-icon">🍽️</div>
+      <h1>Selamat Datang</h1>
+      <p class="tp-sub">Sebelum mulai memesan, silakan konfirmasi atau pilih nomor meja Anda.</p>
+      <div class="table-grid" id="tableGridPicker">
+        <div class="tp-loading">Memuat daftar meja...</div>
+      </div>
+      <p class="tp-hint">Meja abu-abu = sedang terisi. Ketuk nomor meja Anda untuk melanjutkan.</p>
+    </div>
   </div>
 
-  <div class="container">
+  <!-- ================= STEP 2: MENU ================= -->
+  <div id="orderingScreen" style="display:none;">
+    <div class="topbar">
+      <div class="topbar-row">
+        <div>
+          <div class="eyebrow">Sedang memesan</div>
+          <h1>Menu Hari Ini</h1>
+        </div>
+        <button class="table-badge" id="changeTableBtn" type="button">
+          <span class="tb-label">Meja</span>
+          <span class="tb-num" id="tableBadgeNum">-</span>
+        </button>
+      </div>
+    </div>
+
     <div class="category-tabs" id="categoryTabs"></div>
 
-    <div id="menuList"></div>
+    <div class="container">
+      <div id="menuList"></div>
 
-    <div class="section-title">Nomor Meja / Kursi</div>
-    <div class="table-grid" id="tableGrid"></div>
+      <div class="section-title">Catatan untuk Dapur</div>
+      <textarea class="note-input" id="customerNote" rows="2" placeholder="Contoh: pedas sedang, tanpa bawang, dll. (opsional)"></textarea>
+      <div style="height:8px;"></div>
+    </div>
 
-    <div class="section-title">Catatan untuk Dapur</div>
-    <textarea class="note-input" id="customerNote" rows="2" placeholder="Contoh: pedas sedang, tanpa bawang, dll. (opsional)"></textarea>
+    <!-- Cart bar mengambang, tap untuk buka ringkasan -->
+    <button class="cart-bar" id="cartBarBtn" type="button" disabled>
+      <span class="cart-bar-count" id="cartBarCount">0</span>
+      <span class="cart-bar-text" id="cartBarText">Keranjang kosong</span>
+      <span class="cart-bar-total" id="cartBarTotal"></span>
+      <span class="cart-bar-arrow">›</span>
+    </button>
   </div>
 
-  <div class="cart-bar">
-    <span id="cartSummary">Keranjang kosong</span>
-    <button id="sendOrderBtn" disabled>Kirim Pesanan</button>
+  <!-- ================= BOTTOM SHEET: RINGKASAN KERANJANG ================= -->
+  <div class="sheet-backdrop" id="cartSheetBackdrop">
+    <div class="sheet" id="cartSheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <h2>Pesanan Anda</h2>
+        <button class="sheet-close" id="closeCartSheet" type="button" aria-label="Tutup">✕</button>
+      </div>
+      <div class="sheet-body" id="cartItemsList"></div>
+      <div class="sheet-footer">
+        <div class="sheet-total-row">
+          <span>Total</span>
+          <span id="sheetTotalPrice">Rp0</span>
+        </div>
+        <button class="btn-primary btn-send" id="sendOrderBtn">Kirim Pesanan</button>
+      </div>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>

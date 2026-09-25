@@ -57,6 +57,33 @@
     });
   }
 
+  // Modal konfirmasi generik untuk aksi berbahaya (hapus, dsb) — menggantikan
+  // confirm() bawaan browser yang mudah tertekan tanpa sengaja & kurang informatif.
+  function confirmDanger({ title, message, confirmLabel = 'Hapus', onConfirm }) {
+    openModal(`
+      <h2>${escapeHtml(title)}</h2>
+      <p style="color:var(--paper-dim); font-size:14px; line-height:1.55; margin:0 0 20px;">${escapeHtml(message)}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" id="confirmDangerCancel">Batal</button>
+        <button type="button" class="btn-danger-solid" id="confirmDangerOk">${escapeHtml(confirmLabel)}</button>
+      </div>
+    `);
+    document.getElementById('confirmDangerCancel').addEventListener('click', closeModal);
+    document.getElementById('confirmDangerOk').addEventListener('click', async () => {
+      const btn = document.getElementById('confirmDangerOk');
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+      try {
+        await onConfirm();
+        closeModal();
+      } catch (err) {
+        showToast(err.message);
+        btn.disabled = false;
+        btn.textContent = confirmLabel;
+      }
+    });
+  }
+
   // =====================================================================
   // Auth
   // =====================================================================
@@ -65,6 +92,7 @@
   const loginForm = document.getElementById('loginForm');
   const loginError = document.getElementById('loginError');
   const logoutBtn = document.getElementById('logoutBtn');
+  const logoutBtnMobile = document.getElementById('logoutBtnMobile');
 
   let currentUser = null;
   let socket = null;
@@ -88,6 +116,10 @@
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     loginError.textContent = '';
+    const submitBtn = loginForm.querySelector('button[type="submit"]');
+    const label = submitBtn.querySelector('.btn-label');
+    submitBtn.disabled = true;
+    if (label) label.textContent = 'Memeriksa...';
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     try {
@@ -96,20 +128,35 @@
       enterDashboard();
     } catch (err) {
       loginError.textContent = err.message;
+    } finally {
+      submitBtn.disabled = false;
+      if (label) label.textContent = 'Masuk';
     }
   });
 
-  logoutBtn.addEventListener('click', async () => {
+  async function doLogout() {
     await api('POST', '/api/logout');
     currentUser = null;
     showLogin();
-  });
+  }
+  logoutBtn.addEventListener('click', doLogout);
+  logoutBtnMobile.addEventListener('click', doLogout);
+
+  function initials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  }
 
   function enterDashboard() {
     loginScreen.style.display = 'none';
     dashboard.style.display = 'block';
     document.getElementById('userFullName').textContent = currentUser.fullName;
-    document.getElementById('userRole').textContent = currentUser.role === 'admin' ? 'Admin' : 'Kasir';
+    document.getElementById('userFullNameMobile').textContent = currentUser.fullName;
+    const roleLabel = currentUser.role === 'admin' ? 'Admin' : 'Kasir';
+    document.getElementById('userRole').textContent = roleLabel;
+    document.getElementById('userRoleMobile').textContent = roleLabel;
+    document.getElementById('sidebarAvatar').textContent = initials(currentUser.fullName);
     document.querySelectorAll('.admin-only').forEach((el) => {
       el.style.display = currentUser.role === 'admin' ? '' : 'none';
     });
@@ -124,6 +171,7 @@
     socket.on('newOrder', (order) => {
       ordersState.orders.unshift(order);
       renderOrders();
+      updateOrderBadge();
       showToast(`🛎️ Pesanan baru — Meja ${order.tableNumber}`);
       if (navigator.vibrate) navigator.vibrate(200);
     });
@@ -131,6 +179,7 @@
       const idx = ordersState.orders.findIndex((o) => o.id === updated.id);
       if (idx >= 0) ordersState.orders[idx] = updated;
       renderOrders();
+      updateOrderBadge();
     });
     socket.on('tablesUpdated', () => {
       if (activeTab === 'seats') loadSeats();
@@ -138,7 +187,7 @@
   }
 
   // =====================================================================
-  // Tab navigation
+  // Tab navigation — sidebar (desktop) + bottom nav (mobile) + sheet "Lainnya"
   // =====================================================================
   let activeTab = 'orders';
 
@@ -153,13 +202,45 @@
     settings: loadSettings,
   };
 
-  document.querySelectorAll('.nav-tab').forEach((tab) => {
-    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  const moreSheetBackdrop = document.getElementById('moreSheetBackdrop');
+  const closeMoreSheetBtn = document.getElementById('closeMoreSheet');
+  const bnMoreBtn = document.getElementById('bnMoreBtn');
+  const MORE_TABS = ['menu', 'tables', 'users', 'settings'];
+
+  document.querySelectorAll('.nav-item[data-tab]').forEach((el) => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+  document.querySelectorAll('.bn-item[data-tab]:not(#bnMoreBtn)').forEach((el) => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+  document.querySelectorAll('.more-item[data-tab]').forEach((el) => {
+    el.addEventListener('click', () => {
+      closeMoreSheet();
+      switchTab(el.dataset.tab);
+    });
+  });
+
+  function openMoreSheet() { moreSheetBackdrop.classList.add('show'); }
+  function closeMoreSheet() { moreSheetBackdrop.classList.remove('show'); }
+  bnMoreBtn.addEventListener('click', openMoreSheet);
+  closeMoreSheetBtn.addEventListener('click', closeMoreSheet);
+  moreSheetBackdrop.addEventListener('click', (e) => {
+    if (e.target === moreSheetBackdrop) closeMoreSheet();
   });
 
   function switchTab(tabName) {
     activeTab = tabName;
-    document.querySelectorAll('.nav-tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tabName));
+
+    document.querySelectorAll('.nav-item[data-tab]').forEach((el) => {
+      el.classList.toggle('active', el.dataset.tab === tabName);
+    });
+
+    const isMoreTab = MORE_TABS.includes(tabName);
+    document.querySelectorAll('.bn-item[data-tab]:not(#bnMoreBtn)').forEach((el) => {
+      el.classList.toggle('active', el.dataset.tab === tabName);
+    });
+    bnMoreBtn.classList.toggle('active', isMoreTab);
+
     document.querySelectorAll('.tab-panel').forEach((p) => {
       p.style.display = p.id === `panel-${tabName}` ? 'block' : 'none';
     });
@@ -175,28 +256,71 @@
     completed: 'Selesai', cancelled: 'Dibatalkan',
   };
 
+  function updateOrderBadge() {
+    const activeCount = ordersState.orders.filter((o) => o.status === 'pending').length;
+    [document.getElementById('badgeOrders'), document.getElementById('bnBadgeOrders')].forEach((el) => {
+      if (!el) return;
+      if (activeCount > 0) {
+        el.textContent = activeCount > 99 ? '99+' : activeCount;
+        el.style.display = 'flex';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  }
+
   async function loadOrders() {
     const panel = document.getElementById('panel-orders');
-    panel.innerHTML = `<div class="empty-state">Memuat pesanan...</div>`;
+    panel.innerHTML = renderSkeletonCards(3);
     try {
       ordersState.orders = await api('GET', '/api/admin/orders');
       renderOrders();
-    } catch (err) { showToast(err.message); }
+      updateOrderBadge();
+    } catch (err) {
+      panel.innerHTML = `<div class="empty-state">Gagal memuat pesanan: ${escapeHtml(err.message)}</div>`;
+    }
+  }
+
+  function renderSkeletonCards(count) {
+    return `<div class="skeleton-stack">${Array.from({ length: count }).map(() => `
+      <div class="skeleton-card">
+        <div class="sk-line sk-w40"></div>
+        <div class="sk-line sk-w70"></div>
+        <div class="sk-line sk-w50"></div>
+      </div>
+    `).join('')}</div>`;
   }
 
   function renderOrders() {
     const panel = document.getElementById('panel-orders');
     const active = ordersState.orders.filter((o) => !['completed', 'cancelled'].includes(o.status));
     const others = ordersState.orders.filter((o) => ['completed', 'cancelled'].includes(o.status)).slice(0, 15);
-    const ordered = [...active, ...others];
 
-    if (ordered.length === 0) {
-      panel.innerHTML = `<div class="empty-state">Belum ada pesanan masuk.<br/>Pesanan dari pelanggan akan muncul di sini secara realtime.</div>`;
+    if (active.length === 0 && others.length === 0) {
+      panel.innerHTML = `
+        <div class="empty-state-rich">
+          <div class="esr-icon">🛎️</div>
+          <div class="esr-title">Belum ada pesanan masuk</div>
+          <div class="esr-sub">Pesanan dari pelanggan akan langsung muncul di sini secara realtime begitu mereka mengirim.</div>
+        </div>`;
       return;
     }
-    panel.innerHTML = ordered.map(renderOrderCard).join('');
+
+    let html = '';
+    if (active.length > 0) {
+      html += `<div class="list-group-label">Aktif (${active.length})</div>`;
+      html += active.map(renderOrderCard).join('');
+    } else {
+      html += `<div class="empty-state" style="padding:24px 12px;">Tidak ada pesanan aktif saat ini.</div>`;
+    }
+    if (others.length > 0) {
+      html += `<div class="list-group-label" style="margin-top:22px;">Riwayat Terbaru</div>`;
+      html += others.map(renderOrderCard).join('');
+    }
+
+    panel.innerHTML = html;
     panel.querySelectorAll('[data-action]').forEach((btn) => {
-      btn.addEventListener('click', () => updateOrderStatus(btn.dataset.id, btn.dataset.action));
+      btn.addEventListener('click', () => updateOrderStatus(btn.dataset.id, btn.dataset.action, btn));
     });
     attachPrintHandlers(panel);
   }
@@ -217,7 +341,7 @@
       actions = `<button class="btn-sm btn-complete" data-action="completed" data-id="${order.id}">Selesaikan</button>`;
     }
     if (['confirmed', 'paid', 'completed'].includes(order.status)) {
-      actions += `<button class="btn-sm" style="background:var(--paper-dim); color:#14110f;" data-print="${order.id}">🖨️ Struk</button>`;
+      actions += `<button class="btn-sm btn-print" data-print="${order.id}">🖨️ Struk</button>`;
     }
 
     return `
@@ -243,13 +367,31 @@
     });
   }
 
-  async function updateOrderStatus(orderId, status) {
-    try {
-      const data = await api('PUT', `/api/admin/orders/${orderId}/status`, { status });
-      const idx = ordersState.orders.findIndex((o) => o.id === orderId);
-      if (idx >= 0) ordersState.orders[idx] = data.order;
-      renderOrders();
-    } catch (err) { showToast(err.message); }
+  async function updateOrderStatus(orderId, status, triggerBtn) {
+    const cancelling = status === 'cancelled';
+    const doUpdate = async () => {
+      if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = 'Memproses...'; }
+      try {
+        const data = await api('PUT', `/api/admin/orders/${orderId}/status`, { status });
+        const idx = ordersState.orders.findIndex((o) => o.id === orderId);
+        if (idx >= 0) ordersState.orders[idx] = data.order;
+        renderOrders();
+        updateOrderBadge();
+      } catch (err) {
+        showToast(err.message);
+      }
+    };
+
+    if (cancelling) {
+      confirmDanger({
+        title: 'Batalkan pesanan ini?',
+        message: 'Pesanan yang dibatalkan tidak dapat dikembalikan ke status aktif. Pastikan pelanggan sudah diberi tahu.',
+        confirmLabel: 'Ya, Batalkan',
+        onConfirm: doUpdate,
+      });
+    } else {
+      doUpdate();
+    }
   }
 
   // =====================================================================
@@ -257,17 +399,31 @@
   // =====================================================================
   async function loadSeats() {
     const panel = document.getElementById('panel-seats');
+    panel.innerHTML = `<div class="empty-state">Memuat status meja...</div>`;
     try {
       const tables = await api('GET', '/api/tables');
+      if (tables.length === 0) {
+        panel.innerHTML = `
+          <div class="empty-state-rich">
+            <div class="esr-icon">🪑</div>
+            <div class="esr-title">Belum ada meja</div>
+            <div class="esr-sub">Tambahkan meja lewat tab "Kelola Meja" agar pelanggan bisa memilihnya.</div>
+          </div>`;
+        return;
+      }
+      const occupiedCount = tables.filter((t) => t.status === 'terisi').length;
       panel.innerHTML = `
+        <div class="seat-legend">
+          <span><span class="legend-dot legend-dot-occupied"></span> Terisi (${occupiedCount})</span>
+          <span><span class="legend-dot legend-dot-empty"></span> Kosong (${tables.length - occupiedCount})</span>
+        </div>
         <div class="seat-grid">
           ${tables.map((t) => `<div class="seat-cell ${t.status === 'terisi' ? 'occupied' : ''}">${t.number}</div>`).join('')}
         </div>
-        <p style="color:var(--paper-dim); font-size:13px; margin-top:16px;">
-          Meja berwarna violet = sedang terisi (ada pesanan aktif). Meja gelap = kosong.
-        </p>
       `;
-    } catch (err) { showToast(err.message); }
+    } catch (err) {
+      panel.innerHTML = `<div class="empty-state">Gagal memuat meja: ${escapeHtml(err.message)}</div>`;
+    }
   }
 
   // =====================================================================
@@ -374,8 +530,8 @@
     }
   }
 
-  function chartTextColor() { return '#c7b6d9'; }
-  function chartGridColor() { return 'rgba(199,182,217,0.14)'; }
+  function chartTextColor() { return '#6b6455'; }
+  function chartGridColor() { return 'rgba(26, 22, 18, 0.08)'; }
 
   function renderRevenueChart(trend) {
     if (revenueChart) revenueChart.destroy();
@@ -387,12 +543,12 @@
         datasets: [{
           label: 'Pendapatan',
           data: trend.map((d) => d.revenue),
-          borderColor: '#EE82EE',
-          backgroundColor: 'rgba(238,130,238,0.16)',
+          borderColor: '#ff9f1c',
+          backgroundColor: 'rgba(255,159,28,0.12)',
           fill: true,
           tension: 0.3,
           pointRadius: 3,
-          pointBackgroundColor: '#EE82EE',
+          pointBackgroundColor: '#ff9f1c',
         }],
       },
       options: {
@@ -408,11 +564,15 @@
   function renderTopItemsChart(items) {
     if (topItemsChart) topItemsChart.destroy();
     const ctx = document.getElementById('topItemsCanvas');
+    if (items.length === 0) {
+      ctx.parentElement.innerHTML = `<div class="empty-state" style="padding:30px 12px;">Belum ada data penjualan pada periode ini.</div>`;
+      return;
+    }
     topItemsChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: items.map((i) => i.name),
-        datasets: [{ label: 'Terjual', data: items.map((i) => i.totalQty), backgroundColor: '#B23FB2', borderRadius: 4 }],
+        datasets: [{ label: 'Terjual', data: items.map((i) => i.totalQty), backgroundColor: '#12946f', borderRadius: 6 }],
       },
       options: {
         indexAxis: 'y',
@@ -432,7 +592,7 @@
       type: 'bar',
       data: {
         labels: hours.map((h) => `${String(h.hour).padStart(2, '0')}:00`),
-        datasets: [{ label: 'Pesanan', data: hours.map((h) => h.orders), backgroundColor: '#F3AB3D', borderRadius: 3 }],
+        datasets: [{ label: 'Pesanan', data: hours.map((h) => h.orders), backgroundColor: '#e8590c', borderRadius: 4 }],
       },
       options: {
         plugins: { legend: { display: false } },
@@ -447,12 +607,12 @@
   function renderStatusChart(breakdown) {
     if (statusChart) statusChart.destroy();
     const ctx = document.getElementById('statusChartCanvas');
-    const colors = { pending: '#F3AB3D', confirmed: '#5F9CF5', paid: '#2FC39F', completed: '#B6A6C9', cancelled: '#FF5C7A' };
+    const colors = { pending: '#ff9f1c', confirmed: '#2f6fed', paid: '#12946f', completed: '#c9c2b3', cancelled: '#e5484d' };
     statusChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
         labels: breakdown.map((b) => STATUS_LABEL[b.status] || b.status),
-        datasets: [{ data: breakdown.map((b) => b.count), backgroundColor: breakdown.map((b) => colors[b.status] || '#999') }],
+        datasets: [{ data: breakdown.map((b) => b.count), backgroundColor: breakdown.map((b) => colors[b.status] || '#999'), borderColor: '#ffffff', borderWidth: 2 }],
       },
       options: { plugins: { legend: { position: 'bottom', labels: { color: chartTextColor() } } } },
     });
@@ -477,6 +637,7 @@
         </select>
         <input type="date" id="histFrom" />
         <input type="date" id="histTo" />
+        <button class="icon-btn" id="histResetBtn" type="button" style="margin-left:auto;">Reset Filter</button>
       </div>
       <div id="historyList"><div class="empty-state">Memuat riwayat...</div></div>
       <div id="historyPager" style="display:flex; gap:8px; justify-content:center; margin-top:14px;"></div>
@@ -496,13 +657,18 @@
       });
     });
 
+    document.getElementById('histResetBtn').addEventListener('click', () => {
+      historyState.status = ''; historyState.from = ''; historyState.to = ''; historyState.page = 1;
+      loadHistory();
+    });
+
     fetchHistory();
   }
 
   async function fetchHistory() {
     const listEl = document.getElementById('historyList');
     const pagerEl = document.getElementById('historyPager');
-    listEl.innerHTML = `<div class="empty-state">Memuat riwayat...</div>`;
+    listEl.innerHTML = renderSkeletonCards(3);
     try {
       const qs = new URLSearchParams({
         page: historyState.page, pageSize: historyState.pageSize,
@@ -511,17 +677,19 @@
       const data = await api('GET', `/api/admin/orders/history?${qs.toString()}`);
 
       if (data.orders.length === 0) {
-        listEl.innerHTML = `<div class="empty-state">Tidak ada pesanan yang cocok dengan filter ini.</div>`;
+        listEl.innerHTML = `
+          <div class="empty-state-rich">
+            <div class="esr-icon">🔍</div>
+            <div class="esr-title">Tidak ada hasil</div>
+            <div class="esr-sub">Tidak ada pesanan yang cocok dengan filter ini. Coba ubah atau reset filter.</div>
+          </div>`;
         pagerEl.innerHTML = '';
         return;
       }
 
       listEl.innerHTML = data.orders.map(renderOrderCard).join('');
       listEl.querySelectorAll('[data-action]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          await updateOrderStatus(btn.dataset.id, btn.dataset.action);
-          fetchHistory();
-        });
+        btn.addEventListener('click', () => updateOrderStatus(btn.dataset.id, btn.dataset.action, btn));
       });
       attachPrintHandlers(listEl);
 
@@ -533,8 +701,8 @@
       `;
       const prevBtn = document.getElementById('prevPage');
       const nextBtn = document.getElementById('nextPage');
-      if (prevBtn) prevBtn.addEventListener('click', () => { historyState.page--; fetchHistory(); });
-      if (nextBtn) nextBtn.addEventListener('click', () => { historyState.page++; fetchHistory(); });
+      if (prevBtn) prevBtn.addEventListener('click', () => { historyState.page--; fetchHistory(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      if (nextBtn) nextBtn.addEventListener('click', () => { historyState.page++; fetchHistory(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
     } catch (err) {
       listEl.innerHTML = `<div class="empty-state">Gagal memuat: ${escapeHtml(err.message)}</div>`;
     }
@@ -573,14 +741,19 @@
   function renderMenuList(items) {
     const listEl = document.getElementById('menuManageList');
     if (items.length === 0) {
-      listEl.innerHTML = `<div class="empty-state">Belum ada menu. Tambahkan menu pertama Anda.</div>`;
+      listEl.innerHTML = `
+        <div class="empty-state-rich">
+          <div class="esr-icon">📋</div>
+          <div class="esr-title">Belum ada menu</div>
+          <div class="esr-sub">Tambahkan menu pertama Anda supaya pelanggan bisa mulai memesan.</div>
+        </div>`;
       return;
     }
     listEl.innerHTML = items.map((item) => `
       <div class="data-row">
         ${item.image_url
-          ? `<img src="${escapeHtml(item.image_url)}" alt="" style="width:46px; height:46px; border-radius:8px; object-fit:cover; flex-shrink:0;" />`
-          : `<div style="width:46px; height:46px; border-radius:8px; background:var(--ink); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px;">🍽️</div>`
+          ? `<img src="${escapeHtml(item.image_url)}" alt="" style="width:46px; height:46px; border-radius:10px; object-fit:cover; flex-shrink:0;" />`
+          : `<div style="width:46px; height:46px; border-radius:10px; background:var(--surface-muted); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px;">🍽️</div>`
         }
         <div class="main">
           <div class="title">${escapeHtml(item.name)}</div>
@@ -610,13 +783,18 @@
       });
     });
     listEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Hapus menu ini? Tindakan ini tidak bisa dibatalkan.')) return;
-        try {
-          await api('DELETE', `/api/admin/menu/${btn.dataset.id}`);
-          loadMenu();
-          showToast('Menu dihapus.');
-        } catch (err) { showToast(err.message); }
+      btn.addEventListener('click', () => {
+        const item = items.find((i) => i.id == btn.dataset.id);
+        confirmDanger({
+          title: 'Hapus menu ini?',
+          message: `"${item ? item.name : 'Menu ini'}" akan dihapus permanen dan tidak bisa dikembalikan. Menu yang sudah pernah dipesan tetap tercatat di riwayat.`,
+          confirmLabel: 'Ya, Hapus',
+          onConfirm: async () => {
+            await api('DELETE', `/api/admin/menu/${btn.dataset.id}`);
+            loadMenu();
+            showToast('Menu dihapus.');
+          },
+        });
       });
     });
   }
@@ -634,7 +812,7 @@
         <div class="field">
           <label>Foto Menu (opsional, maks 2MB — JPG/PNG/WEBP)</label>
           <div id="imagePreviewWrap" style="margin-bottom:8px;">
-            ${currentImageUrl ? `<img id="imagePreview" src="${escapeHtml(currentImageUrl)}" style="width:100%; max-width:220px; border-radius:10px; display:block;" />` : `<div id="imagePreview" style="width:100%; max-width:220px; height:120px; border-radius:10px; background:var(--ink); display:flex; align-items:center; justify-content:center; font-size:26px;">🍽️</div>`}
+            ${currentImageUrl ? `<img id="imagePreview" src="${escapeHtml(currentImageUrl)}" style="width:100%; max-width:220px; border-radius:12px; display:block;" />` : `<div id="imagePreview" style="width:100%; max-width:220px; height:120px; border-radius:12px; background:var(--surface-muted); display:flex; align-items:center; justify-content:center; font-size:26px;">🍽️</div>`}
           </div>
           <input type="file" id="mImageFile" accept="image/jpeg,image/png,image/webp" />
           <div id="uploadStatus" style="font-size:12px; color:var(--paper-dim); margin-top:4px;"></div>
@@ -668,15 +846,20 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Gagal mengunggah gambar.');
         currentImageUrl = data.url;
-        document.getElementById('imagePreviewWrap').innerHTML = `<img id="imagePreview" src="${escapeHtml(data.url)}" style="width:100%; max-width:220px; border-radius:10px; display:block;" />`;
-        statusEl.textContent = 'Gambar berhasil diunggah.';
+        document.getElementById('imagePreviewWrap').innerHTML = `<img id="imagePreview" src="${escapeHtml(data.url)}" style="width:100%; max-width:220px; border-radius:12px; display:block;" />`;
+        statusEl.textContent = '✓ Gambar berhasil diunggah.';
       } catch (err) {
         statusEl.textContent = err.message;
       }
     });
 
-    document.getElementById('menuForm').addEventListener('submit', async (e) => {
+    const form = document.getElementById('menuForm');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Menyimpan...';
       const payload = {
         name: document.getElementById('mName').value,
         categoryId: document.getElementById('mCategory').value ? Number(document.getElementById('mCategory').value) : null,
@@ -691,7 +874,11 @@
         closeModal();
         showToast(isEdit ? 'Menu diperbarui.' : 'Menu ditambahkan.');
         loadMenu();
-      } catch (err) { showToast(err.message); }
+      } catch (err) {
+        showToast(err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalLabel;
+      }
     });
   }
 
@@ -700,7 +887,7 @@
       <h2>Kelola Kategori</h2>
       <div id="categoryList" style="margin-bottom:16px;"></div>
       <form id="categoryForm" style="display:flex; gap:8px;">
-        <input type="text" id="newCategoryName" placeholder="Nama kategori baru" style="flex:1; padding:11px; border-radius:8px; border:1.5px solid var(--border); background:var(--ink); color:var(--paper);" required />
+        <input type="text" id="newCategoryName" placeholder="Nama kategori baru" style="flex:1; padding:11px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface); color:var(--ink);" required />
         <button type="submit" class="btn-primary" style="width:auto; padding:11px 18px;">Tambah</button>
       </form>
       <div class="modal-actions"><button type="button" class="btn-secondary" id="closeCatManager">Tutup</button></div>
@@ -710,19 +897,23 @@
       document.getElementById('categoryList').innerHTML = categoriesCache.map((c) => `
         <div class="data-row">
           <div class="main"><div class="title">${escapeHtml(c.name)}</div></div>
-          <div class="actions"><button class="icon-btn danger" data-id="${c.id}">Hapus</button></div>
+          <div class="actions"><button class="icon-btn danger" data-id="${c.id}" data-name="${escapeHtml(c.name)}">Hapus</button></div>
         </div>
       `).join('') || `<div class="empty-state" style="padding:20px;">Belum ada kategori.</div>`;
 
       document.querySelectorAll('#categoryList [data-id]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          if (!confirm('Hapus kategori ini? Menu yang memakainya akan jadi "Tanpa kategori".')) return;
-          try {
-            await api('DELETE', `/api/admin/categories/${btn.dataset.id}`);
-            categoriesCache = await api('GET', '/api/admin/categories');
-            renderCatList();
-            showToast('Kategori dihapus.');
-          } catch (err) { showToast(err.message); }
+        btn.addEventListener('click', () => {
+          confirmDanger({
+            title: 'Hapus kategori ini?',
+            message: `Kategori "${btn.dataset.name}" akan dihapus. Menu yang memakainya akan berpindah jadi "Tanpa kategori", bukan ikut terhapus.`,
+            confirmLabel: 'Ya, Hapus',
+            onConfirm: async () => {
+              await api('DELETE', `/api/admin/categories/${btn.dataset.id}`);
+              categoriesCache = await api('GET', '/api/admin/categories');
+              renderCatList();
+              showToast('Kategori dihapus.');
+            },
+          });
         });
       });
     }
@@ -763,6 +954,15 @@
 
   function renderTableList(tables) {
     const listEl = document.getElementById('tableManageList');
+    if (tables.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state-rich">
+          <div class="esr-icon">🔢</div>
+          <div class="esr-title">Belum ada meja</div>
+          <div class="esr-sub">Tambahkan meja pertama supaya pelanggan bisa memilih tempat duduknya.</div>
+        </div>`;
+      return;
+    }
     listEl.innerHTML = tables.map((t) => `
       <div class="data-row">
         <div class="main">
@@ -771,10 +971,10 @@
         </div>
         <div class="actions">
           <button class="toggle-pill ${t.active ? 'on' : 'off'}" data-id="${t.id}" data-active="${t.active}" data-action="toggle">${t.active ? 'Aktif' : 'Nonaktif'}</button>
-          <button class="icon-btn danger" data-id="${t.id}" data-action="delete">Hapus</button>
+          <button class="icon-btn danger" data-id="${t.id}" data-number="${t.number}" data-action="delete">Hapus</button>
         </div>
       </div>
-    `).join('') || `<div class="empty-state">Belum ada meja.</div>`;
+    `).join('');
 
     listEl.querySelectorAll('[data-action="toggle"]').forEach((btn) => {
       btn.addEventListener('click', async () => {
@@ -785,13 +985,17 @@
       });
     });
     listEl.querySelectorAll('[data-action="delete"]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Hapus meja ini?')) return;
-        try {
-          await api('DELETE', `/api/admin/tables/${btn.dataset.id}`);
-          loadTables();
-          showToast('Meja dihapus.');
-        } catch (err) { showToast(err.message); }
+      btn.addEventListener('click', () => {
+        confirmDanger({
+          title: 'Hapus meja ini?',
+          message: `Meja ${btn.dataset.number} akan dihapus. Jika meja ini masih punya riwayat pesanan, penghapusan akan ditolak sistem — nonaktifkan saja jika ingin menyembunyikannya sementara.`,
+          confirmLabel: 'Ya, Hapus',
+          onConfirm: async () => {
+            await api('DELETE', `/api/admin/tables/${btn.dataset.id}`);
+            loadTables();
+            showToast('Meja dihapus.');
+          },
+        });
       });
     });
   }
@@ -915,7 +1119,7 @@
   }
 
   // =====================================================================
-  // TAB: Pengaturan Restoran (admin only) — dipakai di kop struk cetak
+  // TAB: Pengaturan Restoran (admin only)
   // =====================================================================
   async function loadSettings() {
     if (currentUser.role !== 'admin') return;
@@ -938,6 +1142,10 @@
       `;
       document.getElementById('settingsForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Menyimpan...';
         try {
           await api('PUT', '/api/admin/settings', {
             restaurant_name: document.getElementById('sName').value,
@@ -946,7 +1154,12 @@
             receipt_footer: document.getElementById('sFooter').value,
           });
           showToast('Pengaturan disimpan.');
-        } catch (err) { showToast(err.message); }
+        } catch (err) {
+          showToast(err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
       });
     } catch (err) {
       panel.innerHTML = `<div class="empty-state">Gagal memuat pengaturan: ${escapeHtml(err.message)}</div>`;

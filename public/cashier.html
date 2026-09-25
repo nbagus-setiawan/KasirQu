@@ -27,7 +27,9 @@
           <label>Password</label>
           <input type="password" id="password" autocomplete="current-password" required />
         </div>
-        <button class="btn-primary" type="submit">Masuk</button>
+        <button class="btn-primary" type="submit">
+          <span class="btn-label">Masuk</span>
+        </button>
         <div class="error-msg" id="loginError"></div>
       </form>
       <div class="hint-row">Akun demo — admin: admin/admin123 · kasir: kasir/kasir123. Ganti setelah setup.</div>
@@ -36,35 +38,124 @@
 
   <!-- ==== DASHBOARD ==== -->
   <div id="dashboard" style="display:none;">
-    <div class="app-topbar">
-      <div class="who">
-        <span class="name" id="userFullName">-</span>
-        <span class="role" id="userRole">-</span>
+
+    <div class="app-shell">
+
+      <!-- Sidebar (desktop) -->
+      <aside class="app-sidebar">
+        <div class="sidebar-brand">
+          <span class="sidebar-brand-icon">🍽️</span>
+          <span class="sidebar-brand-name">KasirQu</span>
+        </div>
+
+        <div class="sidebar-who">
+          <div class="sidebar-avatar" id="sidebarAvatar">-</div>
+          <div class="sidebar-who-text">
+            <div class="name" id="userFullName">-</div>
+            <div class="role" id="userRole">-</div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" id="navTabs">
+          <button class="nav-item active" data-tab="orders" type="button">
+            <span class="nav-item-icon">🛎️</span>
+            <span class="nav-item-label">Pesanan Masuk</span>
+            <span class="nav-badge" id="badgeOrders" style="display:none;">0</span>
+          </button>
+          <button class="nav-item" data-tab="seats" type="button">
+            <span class="nav-item-icon">🪑</span>
+            <span class="nav-item-label">Status Meja</span>
+          </button>
+          <button class="nav-item" data-tab="reports" type="button">
+            <span class="nav-item-icon">📊</span>
+            <span class="nav-item-label">Laporan Penjualan</span>
+          </button>
+          <button class="nav-item" data-tab="history" type="button">
+            <span class="nav-item-icon">🕓</span>
+            <span class="nav-item-label">Riwayat</span>
+          </button>
+          <button class="nav-item" data-tab="menu" type="button">
+            <span class="nav-item-icon">📋</span>
+            <span class="nav-item-label">Kelola Menu</span>
+          </button>
+          <button class="nav-item" data-tab="tables" type="button">
+            <span class="nav-item-icon">🔢</span>
+            <span class="nav-item-label">Kelola Meja</span>
+          </button>
+          <button class="nav-item admin-only" data-tab="users" type="button" style="display:none;">
+            <span class="nav-item-icon">👤</span>
+            <span class="nav-item-label">Kelola User</span>
+          </button>
+          <button class="nav-item admin-only" data-tab="settings" type="button" style="display:none;">
+            <span class="nav-item-icon">⚙️</span>
+            <span class="nav-item-label">Pengaturan</span>
+          </button>
+        </nav>
+
+        <button class="logout-btn sidebar-logout" id="logoutBtn" type="button">Keluar</button>
+      </aside>
+
+      <!-- Konten utama -->
+      <div class="app-main">
+        <div class="app-topbar">
+          <div class="who">
+            <span class="name" id="userFullNameMobile">-</span>
+            <span class="role" id="userRoleMobile">-</span>
+          </div>
+          <button class="logout-btn" id="logoutBtnMobile">Keluar</button>
+        </div>
+
+        <div class="dash-content">
+          <div id="panel-orders" class="tab-panel"></div>
+          <div id="panel-seats" class="tab-panel" style="display:none;"></div>
+          <div id="panel-reports" class="tab-panel" style="display:none;"></div>
+          <div id="panel-history" class="tab-panel" style="display:none;"></div>
+          <div id="panel-menu" class="tab-panel" style="display:none;"></div>
+          <div id="panel-tables" class="tab-panel" style="display:none;"></div>
+          <div id="panel-users" class="tab-panel" style="display:none;"></div>
+          <div id="panel-settings" class="tab-panel" style="display:none;"></div>
+        </div>
       </div>
-      <button class="logout-btn" id="logoutBtn">Keluar</button>
+
     </div>
 
-    <div class="tab-scroller" id="navTabs">
-      <div class="nav-tab active" data-tab="orders">Pesanan Masuk</div>
-      <div class="nav-tab" data-tab="seats">Status Meja</div>
-      <div class="nav-tab" data-tab="reports">Laporan Penjualan</div>
-      <div class="nav-tab" data-tab="history">Riwayat</div>
-      <div class="nav-tab" data-tab="menu">Kelola Menu</div>
-      <div class="nav-tab" data-tab="tables">Kelola Meja</div>
-      <div class="nav-tab admin-only" data-tab="users" style="display:none;">Kelola User</div>
-      <div class="nav-tab admin-only" data-tab="settings" style="display:none;">Pengaturan</div>
+    <!-- Bottom nav (mobile only) -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bn-item active" data-tab="orders" type="button">
+        <span class="bn-icon-wrap"><span class="bn-icon">🛎️</span><span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></span>
+        <span class="bn-label">Pesanan</span>
+      </button>
+      <button class="bn-item" data-tab="seats" type="button">
+        <span class="bn-icon">🪑</span><span class="bn-label">Meja</span>
+      </button>
+      <button class="bn-item" data-tab="reports" type="button">
+        <span class="bn-icon">📊</span><span class="bn-label">Laporan</span>
+      </button>
+      <button class="bn-item" data-tab="history" type="button">
+        <span class="bn-icon">🕓</span><span class="bn-label">Riwayat</span>
+      </button>
+      <button class="bn-item" data-tab="more" type="button" id="bnMoreBtn">
+        <span class="bn-icon">⋯</span><span class="bn-label">Lainnya</span>
+      </button>
+    </nav>
+
+    <!-- Sheet "Lainnya" untuk mobile: Kelola Menu/Meja/User/Pengaturan -->
+    <div class="sheet-backdrop" id="moreSheetBackdrop">
+      <div class="sheet" id="moreSheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <h2>Lainnya</h2>
+          <button class="sheet-close" id="closeMoreSheet" type="button" aria-label="Tutup">✕</button>
+        </div>
+        <div class="sheet-body more-sheet-body">
+          <button class="more-item" data-tab="menu" type="button"><span class="nav-item-icon">📋</span> Kelola Menu</button>
+          <button class="more-item" data-tab="tables" type="button"><span class="nav-item-icon">🔢</span> Kelola Meja</button>
+          <button class="more-item admin-only" data-tab="users" type="button" style="display:none;"><span class="nav-item-icon">👤</span> Kelola User</button>
+          <button class="more-item admin-only" data-tab="settings" type="button" style="display:none;"><span class="nav-item-icon">⚙️</span> Pengaturan</button>
+        </div>
+      </div>
     </div>
 
-    <div class="dash-content">
-      <div id="panel-orders" class="tab-panel"></div>
-      <div id="panel-seats" class="tab-panel" style="display:none;"></div>
-      <div id="panel-reports" class="tab-panel" style="display:none;"></div>
-      <div id="panel-history" class="tab-panel" style="display:none;"></div>
-      <div id="panel-menu" class="tab-panel" style="display:none;"></div>
-      <div id="panel-tables" class="tab-panel" style="display:none;"></div>
-      <div id="panel-users" class="tab-panel" style="display:none;"></div>
-      <div id="panel-settings" class="tab-panel" style="display:none;"></div>
-    </div>
   </div>
 
   <div id="modalRoot"></div>

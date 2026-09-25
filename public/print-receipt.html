@@ -10,36 +10,40 @@
     margin: 0;
     padding: 0;
     font-family: "Courier New", Courier, monospace;
-    color: #000;
-    background: #ccc;
+    color: #1a1a1a;
+    background: #f0eee9;
   }
   #receipt {
     width: 80mm;
     max-width: 320px;
-    margin: 16px auto;
+    margin: 20px auto;
     background: #fff;
-    padding: 10px 12px;
+    padding: 14px 14px;
     font-size: 12.5px;
     line-height: 1.5;
+    border-radius: 6px;
+    box-shadow: 0 6px 20px rgba(20,17,15,0.10);
   }
   .center { text-align: center; }
   .bold { font-weight: 700; }
   .big { font-size: 15px; }
-  hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+  hr { border: none; border-top: 1px dashed #bbb; margin: 8px 0; }
   .row { display: flex; justify-content: space-between; gap: 6px; }
   .row .name { flex: 1; }
   .item-line { margin-bottom: 2px; }
-  .item-sub { padding-left: 8px; color: #333; font-size: 11.5px; }
-  .no-print { text-align: center; margin: 14px auto; max-width: 320px; }
+  .item-sub { padding-left: 8px; color: #555; font-size: 11.5px; }
+  .no-print { text-align: center; margin: 16px auto; max-width: 320px; }
   .no-print button {
-    background: #14110f; color: #fff; border: none; padding: 10px 22px;
-    border-radius: 8px; font-size: 14px; cursor: pointer; font-family: sans-serif;
+    background: #ff9f1c; color: #fff; border: none; padding: 11px 24px;
+    border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: "Plus Jakarta Sans", sans-serif;
+    box-shadow: 0 2px 8px rgba(255,159,28,0.35);
   }
-  .error { text-align: center; padding: 40px 20px; font-family: sans-serif; color: #900; }
+  .no-print button:hover { background: #e8890a; }
+  .error { text-align: center; padding: 40px 20px; font-family: sans-serif; color: #c0392b; }
 
   @media print {
     body { background: #fff; }
-    #receipt { margin: 0; width: 80mm; max-width: none; box-shadow: none; }
+    #receipt { margin: 0; width: 80mm; max-width: none; box-shadow: none; border-radius: 0; }
     .no-print { display: none; }
     @page { size: 80mm auto; margin: 0; }
   }
