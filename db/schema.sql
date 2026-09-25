@@ -1,10 +1,10 @@
 -- =====================================================================
 -- QR Ordering System — Database Schema (MySQL 8.0+)
 -- =====================================================================
-CREATE DATABASE IF NOT EXISTS qr_ordering
+CREATE DATABASE IF NOT EXISTS KasirQu
   CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE qr_ordering;
+USE KasirQu;
 
 -- ---------------------------------------------------------------------
 -- Users (kasir / admin) — mendukung multi-akun dengan role berbeda
