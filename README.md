@@ -1,4 +1,4 @@
-# Website Kasir & Ordering System berbasis QR Code — MySQL Edition
+# Website Kasir & Ordering System berbasis QR Code — MySQL Edition (KasirQu)
 
 Sistem pemesanan makanan untuk restoran/kafe, versi lengkap dengan **database MySQL**, **laporan penjualan bergrafik**, dan **manajemen penuh** (menu, meja, user).
 
