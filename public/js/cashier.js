@@ -264,7 +264,7 @@
           ${tables.map((t) => `<div class="seat-cell ${t.status === 'terisi' ? 'occupied' : ''}">${t.number}</div>`).join('')}
         </div>
         <p style="color:var(--paper-dim); font-size:13px; margin-top:16px;">
-          Meja berwarna kunyit = sedang terisi (ada pesanan aktif). Meja gelap = kosong.
+          Meja berwarna violet = sedang terisi (ada pesanan aktif). Meja gelap = kosong.
         </p>
       `;
     } catch (err) { showToast(err.message); }
@@ -374,8 +374,8 @@
     }
   }
 
-  function chartTextColor() { return '#b9afa1'; }
-  function chartGridColor() { return 'rgba(185,175,161,0.12)'; }
+  function chartTextColor() { return '#c7b6d9'; }
+  function chartGridColor() { return 'rgba(199,182,217,0.14)'; }
 
   function renderRevenueChart(trend) {
     if (revenueChart) revenueChart.destroy();
@@ -387,11 +387,12 @@
         datasets: [{
           label: 'Pendapatan',
           data: trend.map((d) => d.revenue),
-          borderColor: '#f2a93b',
-          backgroundColor: 'rgba(242,169,59,0.15)',
+          borderColor: '#EE82EE',
+          backgroundColor: 'rgba(238,130,238,0.16)',
           fill: true,
           tension: 0.3,
           pointRadius: 3,
+          pointBackgroundColor: '#EE82EE',
         }],
       },
       options: {
@@ -411,7 +412,7 @@
       type: 'bar',
       data: {
         labels: items.map((i) => i.name),
-        datasets: [{ label: 'Terjual', data: items.map((i) => i.totalQty), backgroundColor: '#3fa88a', borderRadius: 4 }],
+        datasets: [{ label: 'Terjual', data: items.map((i) => i.totalQty), backgroundColor: '#B23FB2', borderRadius: 4 }],
       },
       options: {
         indexAxis: 'y',
@@ -431,7 +432,7 @@
       type: 'bar',
       data: {
         labels: hours.map((h) => `${String(h.hour).padStart(2, '0')}:00`),
-        datasets: [{ label: 'Pesanan', data: hours.map((h) => h.orders), backgroundColor: '#d9622b', borderRadius: 3 }],
+        datasets: [{ label: 'Pesanan', data: hours.map((h) => h.orders), backgroundColor: '#F3AB3D', borderRadius: 3 }],
       },
       options: {
         plugins: { legend: { display: false } },
@@ -446,7 +447,7 @@
   function renderStatusChart(breakdown) {
     if (statusChart) statusChart.destroy();
     const ctx = document.getElementById('statusChartCanvas');
-    const colors = { pending: '#f2a93b', confirmed: '#5fa8e5', paid: '#3fa88a', completed: '#b9afa1', cancelled: '#e5646a' };
+    const colors = { pending: '#F3AB3D', confirmed: '#5F9CF5', paid: '#2FC39F', completed: '#B6A6C9', cancelled: '#FF5C7A' };
     statusChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
@@ -700,7 +701,7 @@
       <div id="categoryList" style="margin-bottom:16px;"></div>
       <form id="categoryForm" style="display:flex; gap:8px;">
         <input type="text" id="newCategoryName" placeholder="Nama kategori baru" style="flex:1; padding:11px; border-radius:8px; border:1.5px solid var(--border); background:var(--ink); color:var(--paper);" required />
-        <button type="submit" class="btn-primary" style="width:auto; padding:11px 18px; background:var(--saffron); color:var(--ink);">Tambah</button>
+        <button type="submit" class="btn-primary" style="width:auto; padding:11px 18px;">Tambah</button>
       </form>
       <div class="modal-actions"><button type="button" class="btn-secondary" id="closeCatManager">Tutup</button></div>
     `);
@@ -931,7 +932,7 @@
             <div class="field"><label>Alamat</label><input type="text" id="sAddress" value="${escapeHtml(settings.restaurant_address || '')}" /></div>
             <div class="field"><label>Nomor Telepon</label><input type="text" id="sPhone" value="${escapeHtml(settings.restaurant_phone || '')}" /></div>
             <div class="field"><label>Pesan Penutup Struk</label><input type="text" id="sFooter" value="${escapeHtml(settings.receipt_footer || '')}" /></div>
-            <button type="submit" class="btn-primary" style="background:var(--saffron); color:var(--ink); width:100%;">Simpan Pengaturan</button>
+            <button type="submit" class="btn-primary" style="width:100%;">Simpan Pengaturan</button>
           </form>
         </div>
       `;
